@@ -1,0 +1,22 @@
+{
+  "name": "arb-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@solana/web3.js": "^1.17.0",
+    "@types/mz": "^2.7.3",
+    "mz": "^2.7.0",
+    "orca-typescript-sdk": "../../orca-typescript-sdk"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^4.26.0",
+    "@typescript-eslint/parser": "^4.26.0",
+    "typescript": "^4.3.2"
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "run": "yarn upgrade && npx ts-node src/index.ts",
+    "lint": "tsc --project ./tsconfig.json --noEmit && eslint --ext=jsx,ts,tsx src"
+  }
+}

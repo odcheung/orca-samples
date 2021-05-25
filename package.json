@@ -1,9 +1,0 @@
-{
-  "name": "arb-bot",
-  "version": "1.0.0",
-  "main": "index.js",
-  "license": "MIT",
-  "dependencies": {
-    "orca-token-swap": "../orca-typescript-sdk/token-swap"
-  }
-}
