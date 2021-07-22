@@ -1,53 +1,122 @@
 import { Connection, Keypair } from "@solana/web3.js";
-import { getOrca, OrcaPoolConfig } from "orca-typescript-sdk"
-import { readFile } from "mz/fs"
+import { getOrca, OrcaPoolConfig, OrcaU64 } from "@orca-so/sdk";
+import { readFile } from "mz/fs";
+import Decimal from "decimal.js";
 
-let connection: Connection | undefined
+let connection: Connection | undefined;
 
 async function getKeyPair(keyPath: string): Promise<Keypair> {
-    const buffer = await readFile(keyPath)
-    let data = JSON.parse(buffer.toString())
-    return Keypair.fromSecretKey(toBuffer(data))
+  const buffer = await readFile(keyPath);
+  let data = JSON.parse(buffer.toString());
+  return Keypair.fromSecretKey(toBuffer(data));
 }
 
-export async function swapStuff() {
-    const connection = await getConnection()
-    const orca = getOrca(connection)
+export async function getLPBalance() {
+  const connection = await getConnection();
+  const orca = getOrca(connection);
 
-    try {
-        let userFeeAddress = await getKeyPair("/Users/ottocheung/dev/solana/pub.json");
+  try {
+    let userFeeAddress = await getKeyPair(
+      "/Users/ottocheung/dev/solana/pub.json"
+    );
 
-        let pool = orca.getPool(OrcaPoolConfig.ETH_USDC)
+    let pool = orca.getPool(OrcaPoolConfig.ETH_USDC);
 
-        let returnVal = await pool?.getLPBalance(userFeeAddress.publicKey)
-        console.log("User has ETH-USDC LP token balance of - " + returnVal);
-    } catch (err) {
-        console.log(err);
-    }
+    let returnVal = await pool?.getLPBalance(userFeeAddress.publicKey);
+    console.log("User has ETH-USDC LP token balance of - " + returnVal);
+  } catch (err) {
+    console.log(err);
+  }
 }
 
-swapStuff().then(() => {
-    console.log("Complete.")
+export async function getLPSupply() {
+  const connection = await getConnection();
+  const orca = getOrca(connection);
+
+  try {
+    let pool = orca.getPool(OrcaPoolConfig.ETH_USDC);
+
+    let returnVal = await pool?.getLPSupply();
+    console.log("User has ETH-USDC LP token supply of - " + returnVal);
+  } catch (err) {
+    console.log(err);
+  }
+}
+
+export async function getQuote() {
+  const connection = await getConnection();
+  const orca = getOrca(connection);
+
+  try {
+    let pool = orca.getPool(OrcaPoolConfig.SOL_USDC);
+
+    let tokenA = pool?.getTokenA(); // ETH
+    console.log(`Token A - ${tokenA}`);
+
+    let tokenB = pool?.getTokenB(); // USDC
+    console.log(`Token B - ${tokenB}`);
+
+    // Quote for 1 ETH to USDC
+    let quote = await pool?.getQuote(tokenA, new Decimal(10), new Decimal(0.1));
+
+    const result = {
+      rate: quote.getRate(),
+      impact: quote.getPriceImpact(),
+      fees: quote.getFees().toNumber(),
+      expected: quote.getExpectedOutputAmount().toNumber(),
+      min: quote.getMinOutputAmount().toNumber(),
+    };
+    console.log(result);
+  } catch (err) {
+    console.log(err);
+  }
+}
+
+export async function swapping() {
+  const connection = await getConnection();
+  const orca = getOrca(connection);
+
+  try {
+    let pool = orca.getPool(OrcaPoolConfig.ETH_USDC);
+    let owner = await getKeyPair("/Users/ottocheung/dev/solana/pub.json");
+
+    const token = pool.getTokenB();
+
+    const tradeValue = new Decimal(1);
+    let quote = await pool?.getQuote(token, tradeValue, new Decimal(0.1));
+    const returnValue = await pool.swap(
+      owner,
+      token,
+      tradeValue,
+      quote.getMinOutputAmount()
+    );
+  } catch (err) {
+    console.log(err);
+  }
+}
+
+getQuote().then(() => {
+  console.log("Complete.");
 });
 
 async function getConnection(
-    url: string = "https://api.mainnet-beta.solana.com"
+  url: string = "https://orca.rpcpool.com/"
 ): Promise<Connection> {
-    if (connection) return connection;
+  if (connection) return connection;
 
-    connection = new Connection(url, "singleGossip");
-    const version = await connection.getVersion();
+  connection = new Connection(url, "singleGossip");
+  const version = await connection.getVersion();
 
-    console.log("Connection to cluster established:", url, version);
-    return connection;
+  console.log("Connection to cluster established:", url, version);
+  return connection;
 }
 
 const toBuffer = (arr: Buffer | Uint8Array | Array<number>): Buffer => {
-    if (arr instanceof Buffer) {
-        return arr;
-    } else if (arr instanceof Uint8Array) {
-        return Buffer.from(arr.buffer, arr.byteOffset, arr.byteLength);
-    } else {
-        return Buffer.from(arr);
-    }
+  if (arr instanceof Buffer) {
+    return arr;
+  } else if (arr instanceof Uint8Array) {
+    return Buffer.from(arr.buffer, arr.byteOffset, arr.byteLength);
+  } else {
+    return Buffer.from(arr);
+  }
 };
