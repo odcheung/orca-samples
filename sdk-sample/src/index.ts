@@ -1,4 +1,8 @@
-import { Connection, Keypair } from "@solana/web3.js";
+import {
+  Connection,
+  Keypair,
+  sendAndConfirmTransaction,
+} from "@solana/web3.js";
 import { getOrca, OrcaPoolConfig, OrcaU64 } from "@orca-so/sdk";
 import { readFile } from "mz/fs";
 import Decimal from "decimal.js";
@@ -48,21 +52,22 @@ export async function getQuote() {
   const orca = getOrca(connection);
 
   try {
-    let pool = orca.getPool(OrcaPoolConfig.SOL_USDC);
+    let pool = orca.getPool(OrcaPoolConfig.ORCA_USDC);
 
     let tokenA = pool?.getTokenA(); // ETH
-    console.log(`Token A - ${tokenA}`);
+    console.log(`Token A - ${tokenA.name}`);
 
     let tokenB = pool?.getTokenB(); // USDC
-    console.log(`Token B - ${tokenB}`);
+    console.log(`Token B - ${tokenB.name}`);
 
     // Quote for 1 ETH to USDC
-    let quote = await pool?.getQuote(tokenA, new Decimal(10), new Decimal(0.1));
+    let quote = await pool?.getQuote(tokenA, new Decimal(1), new Decimal(0.1));
 
     const result = {
       rate: quote.getRate(),
       impact: quote.getPriceImpact(),
-      fees: quote.getFees().toNumber(),
+      lpFees: quote.getLPFees().toNumber(),
+      fees: quote.getNetworkFees().toNumber(),
       expected: quote.getExpectedOutputAmount().toNumber(),
       min: quote.getMinOutputAmount().toNumber(),
     };
@@ -77,19 +82,26 @@ export async function swapping() {
   const orca = getOrca(connection);
 
   try {
-    let pool = orca.getPool(OrcaPoolConfig.ETH_USDC);
-    let owner = await getKeyPair("/Users/ottocheung/dev/solana/pub.json");
+    let pool = orca.getPool(OrcaPoolConfig.ORCA_USDC);
+    let owner = await getKeyPair("/Users/ottocheung/dev/solana/p1.json");
 
     const token = pool.getTokenB();
 
-    const tradeValue = new Decimal(1);
+    const tradeValue = new Decimal(0.1);
     let quote = await pool?.getQuote(token, tradeValue, new Decimal(0.1));
-    const returnValue = await pool.swap(
+    const swapPayload = await pool.swap(
       owner,
       token,
       tradeValue,
       quote.getMinOutputAmount()
     );
+    // console.log(`payload - ${JSON.stringify(swapPayload)}`);
+    swapPayload.execute();
+    // sendAndConfirmTransaction(
+    //   connection,
+    //   swapPayload.transaction,
+    //   swapPayload.signers
+    // );
   } catch (err) {
     console.log(err);
   }
