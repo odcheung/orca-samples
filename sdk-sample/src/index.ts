@@ -52,7 +52,7 @@ export async function getQuote() {
   const orca = getOrca(connection);
 
   try {
-    let pool = orca.getPool(OrcaPoolConfig.ORCA_USDC);
+    let pool = orca.getPool(OrcaPoolConfig.ETH_USDC);
 
     let tokenA = pool?.getTokenA(); // ETH
     console.log(`Token A - ${tokenA.name}`);
@@ -82,8 +82,8 @@ export async function swapping() {
   const orca = getOrca(connection);
 
   try {
-    let pool = orca.getPool(OrcaPoolConfig.ORCA_USDC);
-    let owner = await getKeyPair("/Users/ottocheung/dev/solana/p1.json");
+    let pool = orca.getPool(OrcaPoolConfig.LIQ_USDC);
+    let owner = await getKeyPair("/Users/ottocheung/dev/solana/pub.json");
 
     const token = pool.getTokenB();
 
@@ -96,18 +96,18 @@ export async function swapping() {
       quote.getMinOutputAmount()
     );
     // console.log(`payload - ${JSON.stringify(swapPayload)}`);
-    swapPayload.execute();
-    // sendAndConfirmTransaction(
-    //   connection,
-    //   swapPayload.transaction,
-    //   swapPayload.signers
-    // );
+    // swapPayload.execute();
+    sendAndConfirmTransaction(
+      connection,
+      swapPayload.transaction,
+      swapPayload.signers
+    );
   } catch (err) {
     console.log(err);
   }
 }
 
-getQuote().then(() => {
+swapping().then(() => {
   console.log("Complete.");
 });
 
